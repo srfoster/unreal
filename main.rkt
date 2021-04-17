@@ -5,6 +5,9 @@
  unreal-value
  unreal-eval-js
  unreal-server-port
+ ->unreal-value
+
+ (rename-out [unreal-js-fragment unreal-value?])
 
  bootstrap-unreal-js
  start-unreal)
@@ -19,7 +22,7 @@
          unreal/bootstrap
          unreal/start-unreal)
 
-
+(define unreal-server-port (make-parameter 8080))
 
 (struct unreal-js-fragment (content) #:prefab)
 
@@ -54,7 +57,7 @@
 (define (unreal-eval-js . js-strings-or-fragments)
   (define js (string-join (map string-or-fragment->string js-strings-or-fragments) ""))
 
-  (displayln "************* unreal-eval-js ******************")
+ ; (displayln "************* unreal-eval-js ******************")
 
   (with-handlers ([exn:fail:network:errno?
                    (lambda (e)
@@ -74,12 +77,36 @@
                  #:close? #t
                  #:data js))))
 
-    (displayln "Sent Magic Across to word: ")
-    (displayln js)
+  ;  (displayln "Sent Magic Across to word: ")
+  ;  (displayln js)
 
-    (displayln "Response:")
-    (displayln r)
+  ;  (displayln "Response:")
+  ;  (displayln r)
 
     (when (hash? r)
-      (hash-ref r 'value (void)))
+      (define ret (hash-ref r 'value (void)))
+
+      ret)
     ))
+
+(define (->unreal-value rv)
+
+  ;Dubious.  Does everything have a RootComponent?
+  (define rc (hash-ref rv 'RootComponent))
+  @unreal-value{
+   //Would prefer this, but not working! Why??                                                              
+   //let allActors = GameplayStatics.GetAllActorsOfClass(Actor).OutActors
+   
+   let allActors = KismetSystemLibrary.SphereOverlapActors(GWorld, {}, 100000).OutActors
+   
+   //This parse/stringify trick gives me the "RootComponent" as a string that
+   //seems like it can be used like an id.
+   //Seems like there should be a more efficient way of getting this, though.
+   
+   return allActors.filter((a)=>{return JSON.parse(JSON.stringify(a)).RootComponent == @(~s rc)})[0]
+ })
+
+
+
+
+

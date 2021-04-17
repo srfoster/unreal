@@ -1,15 +1,10 @@
 #lang at-exp racket/base
 
+;Unzip Build.7z before running
+
 ;TODO: Tests are not passing (big payload bug)
 
-;TODO: Spawn a cube
-
 ;TODO: Pass back better errors to racket
-
-;Can we put an unreal world in the repo?
-;What about a project?  (Can't put in Isara tech plugins though)
-;  Idea: Cloud service for making new worlds
-;    (Through our spell sharing server??)
 
 ;TODO: Use this in stream code?
 ;TODO: Replace in codespells
@@ -17,7 +12,11 @@
 ;  What would some cool visuals be?
 ;  Cool coding concepts? Rosette?  Mana costs?  FP?
 
-;  Boring stuff for docs: Sending function definitions over...
+;For docs: Sending function definitions over...
+;  Abstractions.  What you can do with an unreal-value.
+;  TODO: Make 
+
+
 
 (require unreal
          rackunit)
@@ -136,4 +135,46 @@
  hash?
  cube
  "Things can spawn, and data returned as hash"
+ )
+
+
+(define nearby-actors
+  (unreal-eval-js
+   @unreal-value{
+ return KismetSystemLibrary.SphereOverlapActors(GWorld, {}, 1000).OutActors
+ }))
+
+(define middle-cube
+  (findf
+   (lambda (a)
+     (regexp-match #rx"MiddleCube"
+                   (hash-ref a 'RootComponent)))
+   nearby-actors))
+
+(check-pred
+ hash?
+ 
+ middle-cube
+ 
+ "The world can be queried, data returned as arrays, hashes, etc"
+ )
+
+(check-pred
+ unreal-value?
+ 
+ (->unreal-value middle-cube)
+ 
+ "Racket values can be converted back into unreal-values"
+ )
+
+
+(check-equal?
+ (hash-ref middle-cube 'RootComponent)
+ 
+ (hash-ref (unreal-eval-js
+            (->unreal-value
+             middle-cube))
+           'RootComponent)
+ 
+ "Racket values converted with ->unreal-value can be evaled back to the same racket value."
  )

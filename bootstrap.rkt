@@ -31,17 +31,21 @@
 
     var serializedValue = undefined;
 
+    var id = nextId();
+    evaluatedThings[id] = val;
+
+    console.log("ID...", id)
+      
     //Is there an easier way to tell if something is some Unreal value?
     if(typeof(val) == "object" && !Array.isArray(val) && (""+val).match("_C]")){
-      var id = nextId();
-      evaluatedThings[id] = val;                          
-      serializedValue = "(function(){return evaluatedThings['" + id + "']})()";                           
+                                
+     // serializedValue = "(function(){return evaluatedThings['" + id + "']})()";                           
     } else {
       serializedValue = val;
     }
 
     var resp = new Response.ConstructResponseExt()
-    resp.SetResponseContent(JSON.stringify({value: serializedValue}))
+    resp.SetResponseContent(JSON.stringify({value: serializedValue, id: id}))
     conn.SendResponse(resp)
    }
    GetModDirectoryFromName(name){
