@@ -19,7 +19,9 @@
 
 
 (require unreal
-         rackunit)
+         rackunit
+
+         racket/list)
 
 (bootstrap-unreal-js  
  "Build\\WindowsNoEditor\\UnrealJSStarter\\Content\\Scripts"
@@ -44,6 +46,8 @@
  (unreal-eval-js some-js-value)
 
  "JS strings should martial to strings")
+
+
 
 
 
@@ -105,6 +109,60 @@
  "An unreal-value should embed in another unreal value")
 
 
+(check-equal?
+ "Am I a value???"
+ 
+ (unreal-eval-js
+  @unreal-value{
+   return @(->unreal-value "Am I a value???")
+ })
+
+ "->unreal-value should convert racket values such that they become the appropriate js type")
+
+
+(check-equal?
+ 777
+ 
+ (unreal-eval-js
+  @unreal-value{
+   return @(->unreal-value 777)
+ })
+
+ "->unreal-value should convert racket values such that they become the appropriate js type")
+
+
+(check-equal?
+ (hasheq 'X 500)
+ 
+ (unreal-eval-js
+  @unreal-value{
+   return @(->unreal-value (hash 'X 500))
+ })
+
+ "->unreal-value should convert racket values such that they become the appropriate js type")
+
+
+(check-equal?
+ '(1 2 3)
+ 
+ (unreal-eval-js
+  @unreal-value{
+   return @(->unreal-value '(1 2 3))
+ })
+
+ "->unreal-value should convert racket values such that they become the appropriate js type")
+
+(check-equal?
+ '(1 2 3)
+ 
+ (unreal-eval-js
+  (->unreal-value '(1 2 3)))
+
+ "->unreal-value should convert racket values such that they become the appropriate js type")
+
+
+
+
 (define (big-one n)
   (if (= n 0)
       @unreal-value{return "Base"}
@@ -124,10 +182,11 @@
      const uclass = require('uclass')().bind(this,global);
   class MySMA extends StaticMeshActor {
    ctor() {
-    this.StaticMeshComponent.SetStaticMesh(StaticMesh.Load('/Engine/BasicShapes/Cube.Cube'))
+    this.StaticMeshComponent.SetStaticMesh(StaticMesh.Load('/Game/HexTile_mesh'))
    }
   }      
   let MySMA_C = uclass(MySMA);
+  
   return new MySMA_C(GWorld);
    }))
 
@@ -136,6 +195,8 @@
  cube
  "Things can spawn, and data returned as hash"
  )
+
+
 
 
 (define nearby-actors
@@ -147,7 +208,7 @@
 (define middle-cube
   (findf
    (lambda (a)
-     (regexp-match #rx"MiddleCube"
+     (regexp-match #rx"MiddleHex"
                    (hash-ref a 'RootComponent)))
    nearby-actors))
 
@@ -178,3 +239,40 @@
  
  "Racket values converted with ->unreal-value can be evaled back to the same racket value."
  )
+
+(check-equal?
+ (length (take nearby-actors 3))
+ 
+ (length
+  (unreal-eval-js
+   (->unreal-value (take nearby-actors 3))))
+ 
+ "Racket values converted with ->unreal-value can be evaled back to the same racket value."
+ )
+
+
+;Weird things that do work
+
+(define enable-physics
+    @unreal-value{
+      return (x) =>{       
+      x.StaticMeshComponent.SetSimulatePhysics(true);
+      x.StaticMeshComponent.SetEnableGravity(true);
+
+      x.StaticMeshComponent.SetMobility('Movable');
+
+      return x
+      }
+    })
+
+(unreal-eval-js
+ @unreal-value{
+ return @(->unreal-value
+          (take nearby-actors 10)).map(@enable-physics)
+ })
+
+
+#;
+(define falling-things
+  (map (compose unreal-eval-js enable-physics)
+       nearby-actors))

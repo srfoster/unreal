@@ -84,27 +84,70 @@
   ;  (displayln r)
 
     (when (hash? r)
-      (define ret (hash-ref r 'value (void)))
+      (let ()
+        (define ret (hash-ref r 'value (void)))
 
-      ret)
+        ret))
     ))
 
 (define (->unreal-value rv)
+  (local-require json)
 
-  ;Dubious.  Does everything have a RootComponent?
-  (define rc (hash-ref rv 'RootComponent))
-  @unreal-value{
-   //Would prefer this, but not working! Why??                                                              
-   //let allActors = GameplayStatics.GetAllActorsOfClass(Actor).OutActors
-   
-   let allActors = KismetSystemLibrary.SphereOverlapActors(GWorld, {}, 100000).OutActors
-   
-   //This parse/stringify trick gives me the "RootComponent" as a string that
-   //seems like it can be used like an id.
-   //Seems like there should be a more efficient way of getting this, though.
-   
-   return allActors.filter((a)=>{return JSON.parse(JSON.stringify(a)).RootComponent == @(~s rc)})[0]
- })
+  ;(displayln "RV")
+  ;(displayln rv)
+  
+  (define (actor? rv)
+    
+    (and (hash? rv)
+         (hash-has-key? rv 'bAlwaysRelevant)))
+  
+  (cond
+    [(unreal-js-fragment? rv)
+     (displayln "Frag")
+     rv]
+    [(actor? rv)
+     (begin
+       ;Dubious.  Does everything have a RootComponent?
+       (define rc (hash-ref rv 'RootComponent))
+       #|
+      Would prefer this, but not working! Why??                                                              
+      let allActors = GameplayStatics.GetAllActorsOfClass(Actor).OutActors
+      
+      This parse/stringify trick gives me the "RootComponent" as a string that
+      seems like it can be used like an id.
+      Seems like there should be a more efficient way of getting this, though.
+      |#
+       @unreal-value{
+      let allActors = KismetSystemLibrary.SphereOverlapActors(GWorld, {}, 100000).OutActors
+
+      return allActors.filter((a)=>{return JSON.parse(JSON.stringify(a)).RootComponent == @(~s rc)})[0]
+      })]
+    [(list? rv)
+     @unreal-value{
+      return [@(string-join (map (compose unreal-js-fragment-content
+                                          ->unreal-value)
+                                 rv) ",")]
+      }]
+    [(hash? rv)
+     @unreal-value{
+      return {@(string-join
+                (for/list ([k (hash-keys rv)]
+                           [v (hash-values rv)])
+                  (~a "\"" k "\"" ":" (unreal-js-fragment-content
+                                       (->unreal-value v))))
+                ",")}
+
+      }]
+    [(number? rv) @unreal-value{return @rv}]
+    [(string? rv) @unreal-value{return @(~s rv)}]
+    [(boolean? rv) @unreal-value{return @(jsexpr->string rv)} ]
+    [else
+     (error "Can't ->unreal-value that" rv)
+     #;
+     (jsexpr->string rv)]
+    )
+
+  )
 
 
 
