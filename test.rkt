@@ -2,6 +2,9 @@
 
 ;Unzip Build.7z before running
 
+;TODO: Demo twitch bot + unreal integration (just running
+;  Would video content about this topic be interesting?  (Would be a short file...)
+
 ;TODO: Tests are not passing (big payload bug)
 
 ;TODO: Pass back better errors to racket
@@ -14,7 +17,7 @@
 
 ;For docs: Sending function definitions over...
 ;  Abstractions.  What you can do with an unreal-value.
-;  TODO: Make 
+
 
 
 
@@ -183,7 +186,8 @@
   class MySMA extends StaticMeshActor {
    ctor() {
     this.StaticMeshComponent.SetStaticMesh(StaticMesh.Load('/Game/HexTile_mesh'))
-   }
+    this.StaticMeshComponent.SetMobility('Movable');
+    }
   }      
   let MySMA_C = uclass(MySMA);
   

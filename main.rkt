@@ -10,7 +10,9 @@
  (rename-out [unreal-js-fragment unreal-value?])
 
  bootstrap-unreal-js
- start-unreal)
+ start-unreal
+
+ unreal-actor?)
 
 
 
@@ -28,12 +30,9 @@
 
 
 (define (string-or-fragment->string s)
-  (cond [(string? s) s]
-        [(symbol? s) (~a s)]
-        [(number? s) (~a s)]
-        [(unreal-js-fragment? s) (unreal-js-fragment-content s)]
-        [(procedure? s) (string-or-fragment->string (s))]
-        [else (error "You passed something that wasn't a string, js-fragment, or procedure into unreal-js")]))
+  (cond [(unreal-js-fragment? s) (unreal-js-fragment-content s)]
+        [(string? s) s]
+        [else (~a s)]))
 
 
 (define (unreal-js . ss)
@@ -54,7 +53,7 @@
  })
 
 
-(define (unreal-eval-js . js-strings-or-fragments)
+(define (unreal-eval-js #:debug [debug #f] . js-strings-or-fragments)
   (define js (string-join (map string-or-fragment->string js-strings-or-fragments) ""))
 
  ; (displayln "************* unreal-eval-js ******************")
@@ -65,7 +64,7 @@
                      (displayln (~a "No World server found at 127.0.0.1:" (unreal-server-port) ".  Trying again in 5 seconds..."))
                      (sleep 5)
                      
-                     (unreal-eval-js js))
+                     (unreal-eval-js #:debug debug js))
                    ])
     
     (define r
@@ -77,18 +76,27 @@
                  #:close? #t
                  #:data js))))
 
-  ;  (displayln "Sent Magic Across to word: ")
-  ;  (displayln js)
+    (when debug
+      (displayln "Sent Magic Across to word: ")
+      (displayln js)
 
-  ;  (displayln "Response:")
-  ;  (displayln r)
+      (displayln "Response:")
+      (displayln r))
 
     (when (hash? r)
       (let ()
         (define ret (hash-ref r 'value (void)))
 
-        ret))
+        (if (hash? ret)
+            (hash-set ret 'id
+                      (hash-ref r 'id))
+            ret)
+        ))
     ))
+
+(define (unreal-actor? rv)
+  (and (hash? rv)
+       (hash-has-key? rv 'bAlwaysRelevant)))
 
 (define (->unreal-value rv)
   (local-require json)
@@ -96,16 +104,12 @@
   ;(displayln "RV")
   ;(displayln rv)
   
-  (define (actor? rv)
-    
-    (and (hash? rv)
-         (hash-has-key? rv 'bAlwaysRelevant)))
+  
   
   (cond
     [(unreal-js-fragment? rv)
-     (displayln "Frag")
      rv]
-    [(actor? rv)
+    [(unreal-actor? rv)
      (begin
        ;Dubious.  Does everything have a RootComponent?
        (define rc (hash-ref rv 'RootComponent))
@@ -118,9 +122,10 @@
       Seems like there should be a more efficient way of getting this, though.
       |#
        @unreal-value{
-      let allActors = KismetSystemLibrary.SphereOverlapActors(GWorld, {}, 100000).OutActors
+      //let allActors = KismetSystemLibrary.SphereOverlapActors(GWorld, {}, 100000).OutActors
 
-      return allActors.filter((a)=>{return JSON.parse(JSON.stringify(a)).RootComponent == @(~s rc)})[0]
+      //return allActors.filter((a)=>{return JSON.parse(JSON.stringify(a)).RootComponent == @(~s rc)})[0]
+      return evaluatedThings[@(->unreal-value (hash-ref rv 'id))]
       })]
     [(list? rv)
      @unreal-value{
