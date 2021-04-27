@@ -172,7 +172,7 @@
       @unreal-value{return [[@(big-one (sub1 n))],[@(big-one (sub1 n))]]}))
 
 (check-pred
- (compose not void?)
+ (compose not exn:fail?)
  (unreal-eval-js
   (big-one 10))
  "Even big JS payloads should work"
@@ -213,7 +213,7 @@
   (findf
    (lambda (a)
      (regexp-match #rx"MiddleHex"
-                   (hash-ref a 'RootComponent)))
+                   (hash-ref a 'id)))
    nearby-actors))
 
 (check-pred
@@ -234,12 +234,12 @@
 
 
 (check-equal?
- (hash-ref middle-cube 'RootComponent)
+ (hash-ref middle-cube 'id)
  
  (hash-ref (unreal-eval-js
             (->unreal-value
              middle-cube))
-           'RootComponent)
+           'id)
  
  "Racket values converted with ->unreal-value can be evaled back to the same racket value."
  )
@@ -256,6 +256,8 @@
 
 
 ;Weird things that do work
+
+#|
 
 (define enable-physics
     @unreal-value{
@@ -274,6 +276,8 @@
  return @(->unreal-value
           (take nearby-actors 10)).map(@enable-physics)
  })
+
+|#
 
 
 #;

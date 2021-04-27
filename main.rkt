@@ -12,7 +12,9 @@
  bootstrap-unreal-js
  start-unreal
 
- unreal-actor?)
+ unreal-actor?
+
+ unreal-debug)
 
 
 
@@ -52,8 +54,9 @@
   })()
  })
 
+(define unreal-debug (make-parameter #f))
 
-(define (unreal-eval-js #:debug [debug #f] . js-strings-or-fragments)
+(define (unreal-eval-js #:debug [debug (unreal-debug)] . js-strings-or-fragments)
   (define js (string-join (map string-or-fragment->string js-strings-or-fragments) ""))
 
  ; (displayln "************* unreal-eval-js ******************")
@@ -83,20 +86,16 @@
       (displayln "Response:")
       (displayln r))
 
-    (when (hash? r)
-      (let ()
-        (define ret (hash-ref r 'value (void)))
-
-        (if (hash? ret)
-            (hash-set ret 'id
-                      (hash-ref r 'id))
-            ret)
-        ))
+    (if (eof-object? r)
+        (void)
+        r)
     ))
 
 (define (unreal-actor? rv)
   (and (hash? rv)
-       (hash-has-key? rv 'bAlwaysRelevant)))
+       (hash-has-key? rv 'id)
+       (hash-has-key? rv 'type)
+       (string=? "actor" (hash-ref rv 'type))))
 
 (define (->unreal-value rv)
   (local-require json)
@@ -110,23 +109,10 @@
     [(unreal-js-fragment? rv)
      rv]
     [(unreal-actor? rv)
-     (begin
-       ;Dubious.  Does everything have a RootComponent?
-       (define rc (hash-ref rv 'RootComponent))
-       #|
-      Would prefer this, but not working! Why??                                                              
-      let allActors = GameplayStatics.GetAllActorsOfClass(Actor).OutActors
-      
-      This parse/stringify trick gives me the "RootComponent" as a string that
-      seems like it can be used like an id.
-      Seems like there should be a more efficient way of getting this, though.
-      |#
-       @unreal-value{
-      //let allActors = KismetSystemLibrary.SphereOverlapActors(GWorld, {}, 100000).OutActors
-
-      //return allActors.filter((a)=>{return JSON.parse(JSON.stringify(a)).RootComponent == @(~s rc)})[0]
-      return evaluatedThings[@(->unreal-value (hash-ref rv 'id))]
-      })]
+     @unreal-value{
+      var allActors = GWorld.GetAllActorsOfClass(Actor).OutActors
+      return allActors.filter((a)=>{return a.GetDisplayName() == @(->unreal-value (hash-ref rv 'id))})[0]
+     }]
     [(list? rv)
      @unreal-value{
       return [@(string-join (map (compose unreal-js-fragment-content

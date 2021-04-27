@@ -14,6 +14,20 @@
   return "id:"+Math.random();
  }
 
+ function simplify(val){
+  if(!val) return val;
+  
+  if(val.GetDisplayName){
+    return {type: "actor", id: val.GetDisplayName()}
+  }
+
+  if(val.map){
+    return val.map(simplify)
+  }
+
+  return val
+ }
+
  //The minimal code to allow for Aether->World Crossing.
  //  Currently based on Isara tech's webserver.  Will need to change this to become more cross platform.
  function main(){
@@ -29,15 +43,12 @@
 
     var val = eval(script)
 
-    var serializedValue = undefined;
+    var payload = JSON.stringify(simplify(val))
 
-    var id = nextId();
-    evaluatedThings[id] = val;
-
-    console.log("ID...", id)
-      
+    console.log(payload)
+    
     var resp = new Response.ConstructResponseExt()
-    resp.SetResponseContent(JSON.stringify({value: val, id: id}))
+    resp.SetResponseContent(payload)
     conn.SendResponse(resp)
    }
    GetModDirectoryFromName(name){
@@ -83,3 +94,4 @@
  }
 
  }))))
+
