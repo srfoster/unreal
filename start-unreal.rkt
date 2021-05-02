@@ -4,13 +4,30 @@
          unreal-server-port)
 
 (require net/http-easy
-         file/unzip)
+         file/unzip
+         unreal/tcp/server
+         unreal/bootstrap)
 
 (define unreal-server-port (make-parameter 8080))
 
 (define the-thread #f)
 (define (start-unreal some.exe)
-    
+  (if (use-deprecated-unreal-webserver)
+      (deprecated-start-unreal some.exe) 
+      (tcp-start-unreal some.exe)))
+
+(define (tcp-start-unreal some.exe)
+  (when (not (unreal-is-running?))
+    (displayln "Starting new Unreal instance")
+    (set! the-thread
+          (thread
+           (thunk
+            (system
+             (~a some.exe
+                 " -unreal-server=8080 -codespells-server=8081")))))
+    (wait-until-unreal-is-running)))
+
+(define (deprecated-start-unreal some.exe)
   (when (not the-thread)
     (with-handlers ;Only start if there's not an instance running
         ([exn:fail:network:errno?
@@ -24,7 +41,7 @@
       (get (~a "127.0.0.1:" (unreal-server-port) "/js")
            #:close? #t))
     
-
+    
     (wait-until-running)))
 
 

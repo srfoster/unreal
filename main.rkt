@@ -24,7 +24,8 @@
          net/http-easy
 
          unreal/bootstrap
-         unreal/start-unreal)
+         unreal/start-unreal
+         unreal/tcp/server)
 
 (define unreal-server-port (make-parameter 8080))
 
@@ -61,6 +62,14 @@
 
  ; (displayln "************* unreal-eval-js ******************")
 
+  (if (use-deprecated-unreal-webserver) 
+      (deprecated-unreal-eval-js debug js)
+      (tcp-unreal-eval-js debug js)))
+
+(define (tcp-unreal-eval-js debug js)
+  (send-to-unreal js))
+
+(define (deprecated-unreal-eval-js debug js)
   (with-handlers ([exn:fail:network:errno?
                    (lambda (e)
                      (displayln e)
@@ -74,22 +83,22 @@
       (with-handlers ([exn:fail?
                        (lambda (e)
                          e)])
-          (response-json
-           (post (~a "127.0.0.1:" (unreal-server-port) "/js")
-                 #:close? #t
-                 #:data js))))
-
+        (response-json
+         (post (~a "127.0.0.1:" (unreal-server-port) "/js")
+               #:close? #t
+               #:data js))))
+    
     (when debug
       (displayln "Sent Magic Across to word: ")
       (displayln js)
-
+      
       (displayln "Response:")
       (displayln r))
-
+    
     (if (eof-object? r)
         (void)
-        r)
-    ))
+        r)))
+  
 
 (define (unreal-actor? rv)
   (and (hash? rv)
@@ -135,10 +144,7 @@
     [else
      (error "Can't ->unreal-value that" rv)
      #;
-     (jsexpr->string rv)]
-    )
-
-  )
+     (jsexpr->string rv)]))
 
 
 

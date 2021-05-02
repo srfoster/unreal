@@ -6,3 +6,4 @@ compiled/
 /doc/
 *.bak
 Build/
+BuildOld/
