@@ -44,13 +44,23 @@
   class MyTCP extends Root.ResolveClass('TCP'){
    MessageReceived(script){
     console.log("In MessageReceived(script)")
-    console.log(script)
+    //console.log(script)
     
-    var val = eval(script)
-    console.log(val)
+    var val;
+
+    
+    try{
+     val = eval(script)
+    } catch (e){
+     console.log(script)
+     console.log(e)
+     val = {type: "error", error: e.toString()}
+    }
+
+    //console.log(val)
     var payload = JSON.stringify(simplify(val))
     
-    console.log(payload)
+    //console.log(payload)
     
     this.SendMessage(payload + "\n")
     //TODO: Send back payload

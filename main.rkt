@@ -62,9 +62,23 @@
 
  ; (displayln "************* unreal-eval-js ******************")
 
-  (if (use-deprecated-unreal-webserver) 
-      (deprecated-unreal-eval-js debug js)
-      (tcp-unreal-eval-js debug js)))
+  (define result
+    (if (use-deprecated-unreal-webserver) 
+        (deprecated-unreal-eval-js debug js)
+        (tcp-unreal-eval-js debug js)))
+
+  (when (unreal-error? result)
+    (define message (hash-ref result 'error))
+    ;Unreal(.js?) sometimes just fails for no reason, see https://github.com/ncsoft/Unreal.js/issues/300
+    ;  We'll catch the special error message (defined in bootstrap.rkt) and retry.  Gross..
+    (if (regexp-match #"Unreal.js crapped out" message)
+        (let ()
+          (displayln "Unreal.js crapped out, retrying...")
+          (sleep 0.01)
+          (unreal-eval-js #:debug debug js))
+        (raise message)))
+
+  result)
 
 (define (tcp-unreal-eval-js debug js)
   (send-to-unreal js))
@@ -106,6 +120,11 @@
        (hash-has-key? rv 'type)
        (string=? "actor" (hash-ref rv 'type))))
 
+(define (unreal-error? rv)
+  (and (hash? rv)
+       (hash-has-key? rv 'type)
+       (string=? "error" (hash-ref rv 'type))))
+
 (define (->unreal-value rv)
   (local-require json)
 
@@ -120,6 +139,9 @@
     [(unreal-actor? rv)
      @unreal-value{
       var allActors = GWorld.GetAllActorsOfClass(Actor).OutActors
+      if(allActors.length == 0){
+        throw("Unreal.js crapped out.")
+      }
       return allActors.filter((a)=>{return a.GetDisplayName() == @(->unreal-value (hash-ref rv 'id))})[0]
      }]
     [(list? rv)

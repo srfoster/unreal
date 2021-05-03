@@ -165,4 +165,24 @@
  "Even big JS payloads should work"
  )
 
+
+(require unreal/libs/physics
+         unreal/libs/basic-shapes)
+
+(check-pred
+ hash?
+ 
+ (unreal-eval-js
+   (enable-physics (cube)))
+
+ "Should be able to spawn things")
+
 (displayln "Tests complete")
+
+#;
+(let loop ()
+  (unreal-eval-js 
+    (enable-physics 
+      (cube)))
+  (loop))
+  

@@ -10,7 +10,7 @@
      const uclass = require('uclass')().bind(this,global);
   class MySMA extends StaticMeshActor {
    ctor() {
-    this.StaticMeshComponent.SetStaticMesh(StaticMesh.Load('/Game/HexTile_mesh'))
+    this.StaticMeshComponent.SetStaticMesh(StaticMesh.Load('/Engine/BasicShapes/Cube.Cube'))
     this.StaticMeshComponent.SetMobility('Movable');
     }
   }      
@@ -18,3 +18,11 @@
   
   return new MySMA_C(GWorld);
    })
+
+(module+ main
+  (require unreal/libs/physics)
+  (unreal-eval-js
+    (enable-physics (cube))))
+
+
+

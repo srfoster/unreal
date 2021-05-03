@@ -12,7 +12,9 @@
     (start-connection-thread))
 
   (thread-send connection-thread (list string (current-thread)))
-  (thread-receive))
+  (define resp (thread-receive))
+
+  resp)
 
 (define (unreal-is-running?)
   (define the-listener (tcp-listen 8888 5 #t))
@@ -85,7 +87,12 @@
                                                                       eof)])
                              (string-trim (read-line in))))
               ;(displayln resp)
-              (thread-send calling-thread (string->jsexpr resp))
+              (thread-send calling-thread 
+                           (with-handlers ([exn:fail? (lambda (e) 
+                                                        ;(displayln e)
+                                                        (void))])
+                             (string->jsexpr resp)))
+
               (when (not (eof-object? resp))
                 (loop)))
             
