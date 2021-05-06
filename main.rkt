@@ -76,7 +76,9 @@
           (displayln "Unreal.js crapped out, retrying...")
           (sleep 0.01)
           (unreal-eval-js #:debug debug js))
-        (raise message)))
+        (let ()
+          (displayln "Legit Unreal.js error thrown...")
+          (raise-user-error message))))
 
   result)
 
