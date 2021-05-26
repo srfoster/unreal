@@ -5,9 +5,10 @@
 (require unreal)
 
 
-(define (cube)
+(define (cube #:location [location (hash 'X 0 'Y 0 'Z 0)])
    @unreal-value{
-     const uclass = require('uclass')().bind(this,global);
+  const uclass = require('uclass')().bind(this,global);
+
   class MySMA extends StaticMeshActor {
    ctor() {
     this.StaticMeshComponent.SetStaticMesh(StaticMesh.Load('/Engine/BasicShapes/Cube.Cube'))
@@ -16,7 +17,7 @@
   }      
   let MySMA_C = uclass(MySMA);
   
-  return new MySMA_C(GWorld);
+  return new MySMA_C(GWorld, @(->unreal-value location));
    })
 
 (module+ main
