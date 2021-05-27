@@ -5,9 +5,8 @@
          x y z
          roll pitch yaw
          +vec
-         *vec)
-
-(require unreal)
+         *vec
+         distance)
 
 (define (vec x y z)
   (hash 'X x 'Y y 'Z z))
@@ -42,3 +41,15 @@
   (vec (* (x l1) s)
        (* (y l1) s)
        (* (z l1) s)))
+
+(define (distance a b)
+  (local-require racket/math) 
+  (define x1 (hash-ref a 'X))
+  (define y1 (hash-ref a 'Y))
+  (define z1 (hash-ref a 'Z))
+  (define x2 (hash-ref b 'X))
+  (define y2 (hash-ref b 'Y))
+  (define z2 (hash-ref b 'Z))
+  (sqrt (+ (sqr (- x1 x2))
+           (sqr (- y1 y2))
+           (sqr (- z1 z2)))))

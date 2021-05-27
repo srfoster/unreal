@@ -19,6 +19,7 @@
                                          #:location (locate player-start))))
 
 (spell-language-module 'unreal/external-runtime/test-lang-external) 
+
 (add-spawn! "test1" spawn1)
 
 (run-spell "test1"

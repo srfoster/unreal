@@ -1,6 +1,8 @@
 #lang at-exp racket/base
 
-(provide enable-physics)
+(provide enable-physics
+         radial-force
+         force )
 
 (require unreal)
 
@@ -17,3 +19,22 @@
 
       return x
   })
+
+(define (radial-force radius force-strength )
+  @unreal-value{
+ var r = new RadialForceActor(GWorld)
+
+ r.ForceComponent.ForceStrength = @(->unreal-value force-strength)
+ r.ForceComponent.Radius = @(->unreal-value radius)
+
+ return r
+ })
+
+(define (force spawn x y z)
+  @unreal-value{
+ var spawn = @(->unreal-value spawn);
+ var scm = spawn.StaticMeshComponent
+ scm.AddImpulse({X:@x,Y:@y,Z:@z})
+ 
+ return true
+ })

@@ -4,7 +4,14 @@
          count
          with-spawn
          with-args
-         generator)
+         generator
+         
+         let
+         quote
+         #%module-begin
+         #%top-interaction
+         #%app
+         #%datum)
 
 (require racket/generator)
 (define count 0)

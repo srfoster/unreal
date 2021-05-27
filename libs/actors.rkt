@@ -3,7 +3,15 @@
 (provide destroy-actor
          find-actor
          locate
-         exported-class->actor)
+         (rename-out [locate location])
+
+         velocity
+         set-location
+
+         exported-class->actor
+
+         get-all-actors 
+         )
 
 (require unreal
          unreal/libs/basic-types)
@@ -42,10 +50,34 @@
    return undefined
  })
 
-(define/contract (locate obj)
-  (-> any/c unreal-value?)
-  
+(define (locate obj)
   @unreal-value{
  var obj = @(->unreal-value obj);
  return obj.GetActorLocation();
+ })
+
+
+(define (velocity a)
+  @unreal-value{
+    return @(->unreal-value a).GetVelocity()
+  })
+
+(define (set-location a l)
+  @unreal-value{
+ var a = @(->unreal-value a)
+ var l = @(->unreal-value l)
+ 
+ a.SetActorLocation(l) 
+
+ return a
+ })
+
+(define (get-all-actors)
+  @unreal-value{
+    return GWorld.GetAllActorsOfClass(Actor).OutActors
+ })
+ 
+(define (camera [num 0])
+  @unreal-value{
+ return GWorld.GetAllActorsOfClass(CameraActor).OutActors[(->unreal-value num)]
  })

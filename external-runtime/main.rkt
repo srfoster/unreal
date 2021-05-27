@@ -62,13 +62,30 @@
 
 (define spell-language-module (make-parameter #f))
 
+(require racket/sandbox)
 (define safe-ns #f)
+(define sandbox-eval #f)
 (define (setup-ns)
   (when (not (spell-language-module))
     (raise-user-error "Please set the spell-language-module parameter"))
-
+  
   (define main-ns (current-namespace))
+  
+  (when (not sandbox-eval) 
+    (sandbox-namespace-specs
+     (let ([specs (sandbox-namespace-specs)])
+       `(,(car specs)
+         ,@(cdr specs)
+         unreal)))
+    
+    (set! sandbox-eval (make-evaluator (spell-language-module))))
+
+#;
   (set! safe-ns
+        (let ([new-ns (make-empty-namespace)])
+          (namespace-require  (spell-language-module) new-ns))
+   
+        #;
         (let () 
           (dynamic-require (spell-language-module) #f)
           (module->namespace (spell-language-module))))
@@ -142,7 +159,6 @@
   
   code)
 
-(define use-unsafe-ns (make-parameter #f))
 (define (run-spell spawn-name code args)
   (setup-ns-and-ticking-thread)
     
@@ -155,12 +171,13 @@
       ([exn? (curry handle-spell-error spawn-name)])
     
     (define program
-      (eval
+      (sandbox-eval
        `(generator ()
                    (with-args ',args
                      (with-spawn ,(hash-ref current-spawns spawn-name)
                        ,code)))
-       safe-ns))
+      ; safe-ns
+       ))
     
     (set! current-programs
           (hash-set current-programs
