@@ -12,6 +12,7 @@
          get-errors
          seconds-between-ticks
          spell-language-module 
+         (rename-out [setup-ns preload-spell-sandbox])
          )
 
 (require racket/function
@@ -27,7 +28,7 @@
 (define current-errors (hash))
 
 (define runner #f)
-(define seconds-between-ticks (make-parameter 0.1))
+(define seconds-between-ticks (make-parameter 0))
 
 (define (add-spawn! name spawn)
   (set! current-spawns (hash-set current-spawns name spawn)))
@@ -45,6 +46,9 @@
               (hash-remove current-programs
                            username)))
       (let ()
+        (set! current-programs
+              (hash-remove current-programs
+                           username))
         (set! current-errors
               (hash-update current-errors
                            username
@@ -76,7 +80,9 @@
      (let ([specs (sandbox-namespace-specs)])
        `(,(car specs)
          ,@(cdr specs)
-         unreal)))
+         unreal
+         unreal/external-runtime/main
+         )))
     
     (set! sandbox-eval (make-evaluator (spell-language-module))))
 
@@ -101,25 +107,30 @@
            (thunk
             (let tick ()
               ;clear screen and move cursor home
-              (display "\033[2J\033[H") 
+              ;(display "\033[2J\033[H") 
               (for ([username (in-hash-keys current-programs)])
-                (display username)
                 (tick-program username))
               
               ;move cursor home
-              (display "\033[H")
+              ;(display "\033[H")
               
+              #;
               (for ([username (in-hash-keys current-errors)])
                 (when (not (empty? (get-errors username)))
+                  #;
                   (define err-msg 
                     (string-join 
                      (string-split 
                       (~a (last (get-errors username))) "\n")
                      "\033[1E\033[40C"))
+                  #;
                   (display 
-                   (~a "\033[40C" username " ERROR!\033[1E\033[40C" err-msg "\033[2E"))))
+                   (~a "\033[40C" username " ERROR!\033[1E\033[40C" err-msg "\033[2E"))
+
+                 ; (displayln (last (get-errors username)))
+                  ))
               
-              (displayln "\033[H")
+             ; (displayln "\033[H")
 
               (sleep (seconds-between-ticks))
               (tick)))))))

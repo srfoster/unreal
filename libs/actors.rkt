@@ -2,16 +2,14 @@
 
 (provide destroy-actor
          find-actor
-         locate
-         (rename-out [locate location])
-
+         location
+         (rename-out [location locate])
+         scale
          velocity
          set-location
-
+         set-scale
          exported-class->actor
-
-         get-all-actors 
-         )
+         get-all-actors)
 
 (require unreal
          unreal/libs/basic-types)
@@ -28,39 +26,53 @@
 
 (define (find-actor name)
   @unreal-value{
-   var allActors = GWorld.GetAllActorsOfClass(Actor).OutActors
-   if(allActors.length == 0){
-      throw("Unreal.js crapped out.")
-   }
-   return allActors.filter((a)=>{return a.GetDisplayName().match(new RegExp(@(->unreal-value name), "g"))})[0]
-})
+ var allActors = GWorld.GetAllActorsOfClass(Actor).OutActors
+ if(allActors.length == 0){
+  throw("Unreal.js crapped out.")
+ }
+ return allActors.filter((a)=>{return a.GetDisplayName().match(new RegExp(@(->unreal-value name), "g"))})[0]
+ })
 
 (define (destroy-actor doomed)
   @unreal-value{
-    var destroy = function(a){
-         a.GetAttachedActors().OutActors.map(destroy)
-
-         a.DestroyActor()                         
-     }
-
-   var doomed = @(->unreal-value doomed)
-
-   destroy(doomed);
-
-   return undefined
+ var destroy = function(a){
+  a.GetAttachedActors().OutActors.map(destroy)
+  
+  a.DestroyActor()                         
+ }
+                          
+ var doomed = @(->unreal-value doomed)
+ 
+ destroy(doomed);
+ 
+ return undefined
  })
 
-(define (locate obj)
+(define (scale obj [new-scale #f])
+  (if new-scale
+      (set-scale obj new-scale)
+      @unreal-value{
+        var obj = @(->unreal-value obj);
+        return obj.GetActorScale3D();
+      }))
+
+(define (set-scale a s)
   @unreal-value{
- var obj = @(->unreal-value obj);
- return obj.GetActorLocation();
+ var a = @(->unreal-value a)
+ var s = @(->unreal-value s)
+ 
+ a.SetActorScale3D(s) 
+
+ return a
  })
 
-
-(define (velocity a)
-  @unreal-value{
-    return @(->unreal-value a).GetVelocity()
-  })
+(define (location obj [new-loc #f])
+  (if new-loc
+      (set-location obj new-loc)
+      @unreal-value{
+        var obj = @(->unreal-value obj);
+        return obj.GetActorLocation();
+      }))
 
 (define (set-location a l)
   @unreal-value{
@@ -71,6 +83,12 @@
 
  return a
  })
+
+(define (velocity a [new-vel #f])
+  @unreal-value{
+    return @(->unreal-value a).GetVelocity()
+  })
+
 
 (define (get-all-actors)
   @unreal-value{
