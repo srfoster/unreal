@@ -7,10 +7,10 @@
          unreal-is-running?)
 
 (define (send-to-unreal string)
-;  (displayln (~a "Sending to Unreal " string))
-  (when (not connection-thread)
+  ;  (displayln (~a "Sending to Unreal " string))
+  (when (or (not connection-thread) (not (thread-running? connection-thread)))
     (start-connection-thread))
-
+  
   (thread-send connection-thread (list string (current-thread)))
   (define resp (thread-receive))
 

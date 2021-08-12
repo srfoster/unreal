@@ -6,7 +6,14 @@
          roll pitch yaw
          +vec
          *vec
+         vec?
          distance)
+
+(define (vec? x)
+  (and (hash? x)
+       (hash-has-key? x 'X)
+       (hash-has-key? x 'Y)
+       (hash-has-key? x 'Z)))
 
 (define (vec x y z)
   (hash 'X x 'Y y 'Z z))
