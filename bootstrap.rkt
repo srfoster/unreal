@@ -42,23 +42,23 @@
   console.log("**************Unreal TCP Server Started************")
   
   class MyTCP extends Root.ResolveClass('TCP'){
-   MessageReceived(script){
-    console.log("In MessageReceived(script)")
+   MessageReceived(racketMessage){
+    console.log("In MessageReceived(racketMessage)")
     //console.log(script)
     
     var val;
 
     
     try{
-     val = eval(script)
+     val = eval(racketMessage.jsSnippet)
     } catch (e){
-     console.log(script)
+     console.log(racketMessage)
      console.log(e)
      val = {type: "error", error: e.toString()}
     }
 
     //console.log(val)
-    var payload = JSON.stringify(simplify(val))
+    var payload = JSON.stringify({eventType: racketMessage.eventType, eventData: simplify(val)})
     
     //console.log(payload)
     
