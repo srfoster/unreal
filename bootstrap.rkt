@@ -15,7 +15,7 @@
         (thunk
          (displayln
           @~a{
-              
+
  var evaluatedThings = {}
                        
  function nextId(){
@@ -43,14 +43,16 @@
   
   class MyTCP extends Root.ResolveClass('TCP'){
    MessageReceived(racketMessage){
+    racketMessage = JSON.parse(racketMessage)
     console.log("In MessageReceived(racketMessage)")
+    console.log(racketMessage)
     //console.log(script)
     
     var val;
 
     
     try{
-     val = eval(racketMessage.jsSnippet)
+     val = eval(racketMessage["jsSnippet"])
     } catch (e){
      console.log(racketMessage)
      console.log(e)
@@ -58,9 +60,15 @@
     }
 
     //console.log(val)
-    var payload = JSON.stringify({eventType: racketMessage.eventType, eventData: simplify(val)})
+    //var payload = "{eventType: " + racketMessage["eventType"] + ", eventData: \"" + JSON.stringify(simplify(val)) + "\"}"
+
+       //Wish this would just work...
+    //var payload = JSON.stringify({eventType: {racketMessage["eventType"], eventData: (simplify(val))})
+
+       //But alas, Unreal.js makes me do this for some reason...
+    var payload = `{"eventType": ${racketMessage["eventType"]}, "eventData": ${JSON.stringify(simplify(val))}}`
     
-    //console.log(payload)
+    console.log(payload)
     
     this.SendMessage(payload + "\n")
     //TODO: Send back payload
@@ -106,6 +114,7 @@
   console.log("Error",e);
   require('bootstrap')('on-start')
  }
+
  })))))
 
 

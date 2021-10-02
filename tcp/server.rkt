@@ -72,11 +72,12 @@
   (subscribe-to-unreal-event (lambda (resp) 
     (channel-put wait resp)
   ) unique-id)
-  (displayln "waiting for response...") 
+  (displayln (~a "waiting for response for " unique-id))
   (define resp (channel-get wait))
   (displayln resp)
   resp
   )
+
 
 (define unreal-message-queue 
   (make-queue))
@@ -89,7 +90,8 @@
           (lambda ()
             (let main-loop ()
               (if (queue-empty? unreal-message-queue)
-                (sleep 100)
+                (let() 
+                  (sleep 0.1))
                 (let ()
                   (displayln "Handling message..." )
                   (define unreal-message (dequeue! unreal-message-queue))
@@ -137,7 +139,8 @@
                                                                       (displayln (exn-continuation-marks e))
                                                                       eof)])
                              (string-trim (read-line in))))
-                             (displayln raw-message-from-unreal)
+              (displayln "raw-message-from-unreal")
+              (displayln raw-message-from-unreal)
               (define message-from-unreal 
                            (with-handlers ([exn:fail? (lambda (e) 
                                                         (displayln e)
@@ -145,7 +148,9 @@
                              (string->jsexpr raw-message-from-unreal)))
               (displayln "Enqueuing message...")
               (displayln message-from-unreal)
-              (enqueue! unreal-message-queue message-from-unreal)
+              (when (not (void? message-from-unreal))
+                (enqueue! unreal-message-queue message-from-unreal))
+
               (when (not (eof-object? raw-message-from-unreal))
                 (loop)))
             
@@ -259,4 +264,5 @@
             (main-loop))))))
 
 |#
+
 
