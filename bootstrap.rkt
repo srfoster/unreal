@@ -59,13 +59,6 @@
      val = {type: "error", error: e.toString()}
     }
 
-    //console.log(val)
-    //var payload = "{eventType: " + racketMessage["eventType"] + ", eventData: \"" + JSON.stringify(simplify(val)) + "\"}"
-
-       //Wish this would just work...
-    //var payload = JSON.stringify({eventType: {racketMessage["eventType"], eventData: (simplify(val))})
-
-       //But alas, Unreal.js makes me do this for some reason...
     var payload = `{"eventType": ${racketMessage["eventType"]}, "eventData": ${JSON.stringify(simplify(val))}}`
     
     console.log(payload)
