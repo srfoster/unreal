@@ -1,16 +1,16 @@
-#lang racket/base
+#lang racket
 
 (require racket/tcp racket/match racket/string json racket/format data/queue)
 
 (provide send-to-unreal 
-        wait-until-unreal-is-running
+         wait-until-unreal-is-running
          unreal-is-running?
-         )
+         subscribe-to-unreal-event)
 
 (define subscribed-events
   (make-hash))
 
-(define (subscribe-to-unreal-event func event-type)
+(define (subscribe-to-unreal-event event-type func)
   (if (hash-has-key? subscribed-events event-type)
       (hash-set! subscribed-events event-type (cons func (hash-ref subscribed-events event-type)))
       (hash-set! subscribed-events event-type (list func))
@@ -69,9 +69,9 @@
   (displayln (jsexpr->string message) unreal-tcp-out)
   (flush-output unreal-tcp-out)
   (define wait (make-channel))
-  (subscribe-to-unreal-event (lambda (resp) 
+  (subscribe-to-unreal-event unique-id(lambda (resp) 
     (channel-put wait resp)
-  ) unique-id)
+  ))
   (displayln (~a "waiting for response for " unique-id))
   (define resp (channel-get wait))
   (displayln resp)
@@ -98,9 +98,9 @@
                   (displayln unreal-message )
                   (define event-type (hash-ref unreal-message 'eventType))
                   (define functions-to-call
-                    (hash-ref subscribed-events event-type))
+                    (hash-ref subscribed-events event-type '()))
                   (for ([f functions-to-call])
-                    (f (hash-ref unreal-message 'eventData)))
+                    (thread (thunk (f (hash-ref unreal-message 'eventData)))))
                   (when (number? event-type)
                         (hash-remove! subscribed-events event-type))
 
@@ -113,6 +113,7 @@
                   ; the latter is for responses to unreal-eval-js; 
                   ) 
               )
+              (displayln "Gonna loop...")
               (main-loop)
               ))))
 )
