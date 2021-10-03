@@ -5,7 +5,8 @@
 (provide send-to-unreal 
          wait-until-unreal-is-running
          unreal-is-running?
-         subscribe-to-unreal-event)
+         subscribe-to-unreal-event
+         unsubscribe-from-unreal-event)
 
 (define subscribed-events
   (make-hash))
@@ -13,10 +14,12 @@
 (define (subscribe-to-unreal-event event-type func)
   (if (hash-has-key? subscribed-events event-type)
       (hash-set! subscribed-events event-type (cons func (hash-ref subscribed-events event-type)))
-      (hash-set! subscribed-events event-type (list func))
-      )
-)
+      (hash-set! subscribed-events event-type (list func))))
 
+(define (unsubscribe-from-unreal-event event-type func)
+  (when (hash-has-key? subscribed-events event-type)
+        (hash-set! subscribed-events event-type (remove func (hash-ref subscribed-events event-type)))))
+      
 (define (wait-until-unreal-is-running)
   (displayln "Waiting for unreal to start...")            
   (define result (send-to-unreal "(()=>{return 'hi'})()"))
@@ -113,7 +116,6 @@
                   ; the latter is for responses to unreal-eval-js; 
                   ) 
               )
-              (displayln "Gonna loop...")
               (main-loop)
               ))))
 )
