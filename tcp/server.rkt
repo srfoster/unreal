@@ -6,20 +6,43 @@
          wait-until-unreal-is-running
          unreal-is-running?
          subscribe-to-unreal-event
-         unsubscribe-from-unreal-event)
+         unsubscribe-from-unreal-event
+         unsubscribe-all-from-unreal-event
+         )
 
+; hash of eventTypes : functions
 (define subscribed-events
   (make-hash))
 
-(define (subscribe-to-unreal-event event-type func)
+; hash of groupNames : functions
+(define subscription-groups
+  (make-hash))
+
+(define (subscribe-to-unreal-event event-type func #:group [group #f])
   (if (hash-has-key? subscribed-events event-type)
       (hash-set! subscribed-events event-type (cons func (hash-ref subscribed-events event-type)))
-      (hash-set! subscribed-events event-type (list func))))
+      (hash-set! subscribed-events event-type (list func)))
+  (if (hash-has-key? subscription-groups group)
+      (hash-set! subscription-groups group (cons func (hash-ref subscription-groups group)))
+      (hash-set! subscription-groups group (list func))))
 
 (define (unsubscribe-from-unreal-event event-type func)
   (when (hash-has-key? subscribed-events event-type)
         (hash-set! subscribed-events event-type (remove func (hash-ref subscribed-events event-type)))))
-      
+
+(define (unsubscribe-all-from-unreal-event event-type #:group [group #f])
+  
+  (when (hash-has-key? subscribed-events event-type)
+    (define functions-subscribed-to-event-type (hash-ref subscribed-events event-type))
+    (define is-not-in-group?
+      (lambda (f)
+        (not (member f (hash-ref subscription-groups group (list))))))
+    (define functions-subscribed-to-event-type-and-not-in-group 
+      (filter is-not-in-group?
+              functions-subscribed-to-event-type))
+
+    (hash-set! subscribed-events event-type functions-subscribed-to-event-type-and-not-in-group)))
+
 (define (wait-until-unreal-is-running)
   (displayln "Waiting for unreal to start...")            
   (define result (send-to-unreal "(()=>{return 'hi'})()"))
