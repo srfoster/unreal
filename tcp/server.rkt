@@ -7,8 +7,7 @@
          unreal-is-running?
          subscribe-to-unreal-event
          unsubscribe-from-unreal-event
-         unsubscribe-all-from-unreal-event
-         )
+         unsubscribe-all-from-unreal-event)
 
 ; hash of eventTypes : functions
 (define subscribed-events
@@ -148,8 +147,7 @@
                   ) 
               )
               (main-loop)
-              ))))
-)
+              )))))
 
 (define connection-thread #f)
 (define unreal-tcp-out #f)
@@ -200,4 +198,3 @@
             
             (sleep 1)
             (main-loop))))))
-
