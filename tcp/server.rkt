@@ -98,8 +98,10 @@
 
   (define unique-id (random))
   (define message (hash 'eventType unique-id 'jsSnippet js-snippet))
+  
   (displayln (jsexpr->string message) unreal-tcp-out)
   (flush-output unreal-tcp-out)
+  
   (define wait (make-channel))
   (subscribe-to-unreal-event unique-id(lambda (resp) 
     (channel-put wait resp)

@@ -43,28 +43,30 @@
   
   class MyTCP extends Root.ResolveClass('TCP'){
    MessageReceived(racketMessage){
-    racketMessage = JSON.parse(racketMessage)
-    console.log("In MessageReceived(racketMessage)")
-    console.log(racketMessage)
-    //console.log(script)
-    
-    var val;
 
-    
-    try{
-     val = eval(racketMessage["jsSnippet"])
-    } catch (e){
+    let messages = racketMessage.split("\n")
+    messages.map((racketMessage) => {
      console.log(racketMessage)
-     console.log(e)
-     val = {type: "error", error: e.toString()}
-    }
+     racketMessage = JSON.parse(racketMessage)
+     console.log("In MessageReceived(racketMessage)")
+     console.log(racketMessage)
 
-    var payload = `{"eventType": ${racketMessage["eventType"]}, "eventData": ${JSON.stringify(simplify(val))}}`
-    
-    console.log(payload)
-    
-    this.SendMessage(payload + "\n")
-    //TODO: Send back payload
+     var val;
+
+     try {
+      val = eval(racketMessage["jsSnippet"])
+      } catch (e) {
+      console.log(racketMessage)
+      console.log(e)
+      val = { type: "error", error: e.toString() }
+     }
+
+     var payload = `{"eventType": ${racketMessage["eventType"]}, "eventData": ${JSON.stringify(simplify(val))}}`
+
+     console.log(payload)
+
+     this.SendMessage(payload + "\n")
+     })
    }
    GetModDirectoryFromName(name){
     return {ModDirectory: modDirectories[name]}
