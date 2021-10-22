@@ -9,6 +9,11 @@
          unsubscribe-from-unreal-event
          unsubscribe-all-from-unreal-event)
 
+(define (log str)
+  ;(displayln str)
+  
+  (void))
+
 ; hash of eventTypes : functions
 (define subscribed-events
   (make-hash))
@@ -18,7 +23,7 @@
   (make-hash))
 
 (define (subscribe-to-unreal-event event-type func #:group [group #f])
-  (displayln "Subscribing new event...")
+  (log "Subscribing new event...")
   (if (hash-has-key? subscribed-events event-type)
       (hash-set! subscribed-events event-type (cons func (hash-ref subscribed-events event-type)))
       (hash-set! subscribed-events event-type (list func)))
@@ -44,13 +49,13 @@
     (hash-set! subscribed-events event-type functions-subscribed-to-event-type-and-not-in-group)))
 
 (define (wait-until-unreal-is-running)
-  (displayln "Waiting for unreal to start...")            
+  (log "Waiting for unreal to start...")            
   (define result (send-to-unreal "(()=>{return 'hi'})()"))
 
   (if (string=? "hi" result)
       #t
       (let ()
-        (displayln "Unreal connection failed, retrying in five seconds")
+        (log "Unreal connection failed, retrying in five seconds")
         (sleep 5)
         (wait-until-unreal-is-running))))
 
@@ -60,7 +65,7 @@
   (define out-port #f)
   (define connection-made? #f)
   (define test-thread (thread (lambda () 
-                                (displayln "Testing to see if unreal is alive....")
+                                (log "Testing to see if unreal is alive....")
                                 (define-values (in out) (tcp-accept the-listener))
                                 (set! in-port in)
                                 (set! out-port out)
@@ -70,13 +75,13 @@
   (for ([i (in-range 0 7)]) ; Wait a few seconds for unreal to make contact
     #:break connection-made?
     (sleep 1)
-    (displayln "Waiting..."))
+    (log "Waiting..."))
 
   (tcp-close the-listener)
   (when out-port (close-output-port out-port))
   (when in-port (close-input-port in-port))
 
-  (displayln (if connection-made? "Yes, alive" "Not alive"))
+  (log (if connection-made? "Yes, alive" "Not alive"))
         
   (kill-thread test-thread)
   
@@ -84,7 +89,7 @@
   
 
 (define (send-to-unreal js-snippet)
-   (displayln (~a "Sending to Unreal " js-snippet))
+   (log (~a "Sending to Unreal " js-snippet))
   (when (or (not connection-thread) (not (thread-running? connection-thread)))
     (start-connection-thread))
   (when (or (not message-handling-thread) (not (thread-running? message-handling-thread)))
@@ -93,7 +98,7 @@
   (let loop ()
     (when (not unreal-tcp-out)
       (sleep 0.1)
-      (displayln "Waiting for Racket's unreal handling threads to start...")
+      (log "Waiting for Racket's unreal handling threads to start...")
       (loop)))
 
   (define unique-id (random))
@@ -106,9 +111,9 @@
   (subscribe-to-unreal-event unique-id(lambda (resp) 
     (channel-put wait resp)
   ))
-  (displayln (~a "waiting for response for " unique-id))
+  (log (~a "waiting for response for " unique-id))
   (define resp (channel-get wait))
-  (displayln resp)
+  (log resp)
   resp
   )
 
@@ -127,14 +132,14 @@
                 (let() 
                   (sleep 0.1))
                 (let ()
-                  (displayln "Handling message..." )
+                  (log "Handling message..." )
                   (define unreal-message (dequeue! unreal-message-queue))
-                  (displayln unreal-message )
+                  (log unreal-message )
                   (define event-type (hash-ref unreal-message 'eventType))
                   (define functions-to-call
                     (hash-ref subscribed-events event-type '()))
                   (for ([f functions-to-call])
-                    (displayln "Looping...")
+                    (log "Looping...")
                     (thread (thunk (f (hash-ref unreal-message 'eventData)))))
                   (when (number? event-type)
                         (hash-remove! subscribed-events event-type))
@@ -159,18 +164,18 @@
         (thread
          (lambda ()
           (let main-loop ()
-            (displayln "Creating listener...")
+            (log "Creating listener...")
             (define the-listener (tcp-listen 8888 5 #t))
-            (displayln "Accepting connection...")
+            (log "Accepting connection...")
             (define-values (in out) (tcp-accept the-listener))
             (set! unreal-tcp-out out)
-            (displayln "Accepted connection!")
+            (log "Accepted connection!")
             
             (let loop ()
               (define raw-message-from-unreal (with-handlers ([exn:fail:network:errno? (lambda (e)
-                                                                      (displayln (exn-message e))
-                                                                      (displayln (exn:fail:network:errno-errno e))
-                                                                      (displayln (exn-continuation-marks e))
+                                                                      (log (exn-message e))
+                                                                      (log (exn:fail:network:errno-errno e))
+                                                                      (log (exn-continuation-marks e))
                                                                       eof)])
                                                               
                              (string-trim (read-line in))))
@@ -180,22 +185,22 @@
               ;   (set! message-handling-thread #f)
               ;  )
 
-              (displayln "raw-message-from-unreal")
-              (displayln raw-message-from-unreal)
+              (log "raw-message-from-unreal")
+              (log raw-message-from-unreal)
 
               (when (not (eof-object? raw-message-from-unreal))
                 (define message-from-unreal
                   (with-handlers ([exn:fail? (lambda (e)
-                                               (displayln e)
+                                               (log e)
                                                (void))])
                     (string->jsexpr raw-message-from-unreal)))
-                (displayln "Enqueuing message...")
-                (displayln message-from-unreal)
+                (log "Enqueuing message...")
+                (log message-from-unreal)
                 (when (not (void? message-from-unreal))
                   (enqueue! unreal-message-queue message-from-unreal))
                 (loop)))
             
-            (displayln "Closing...")
+            (log "Closing...")
             (tcp-close the-listener)
             
             (sleep 1)
