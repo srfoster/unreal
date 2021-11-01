@@ -135,17 +135,16 @@
   ;(displayln rv)
   
   
-  
   (cond
     [(unreal-js-fragment? rv)
      rv]
     [(unreal-actor? rv)
      @unreal-value{
-      var allActors = GWorld.GetAllActorsOfClass(Actor).OutActors
+      var allActors = GWorld.GetAllActorsOfClass(Actor).OutActors;
       if(allActors.length == 0){
-        throw("Unreal.js crapped out.")
+        throw("Unreal.js crapped out.");
       }
-      return allActors.filter((a)=>{return a.GetDisplayName() == @(->unreal-value (hash-ref rv 'id))})[0]
+      return allActors.filter((a)=>{return a.GetDisplayName() == @(->unreal-value (hash-ref rv 'id))})[0];
      }]
     [(list? rv)
      @unreal-value{
@@ -156,8 +155,8 @@
     [(hash? rv)
      @unreal-value{
       return {@(string-join
-                (for/list ([k (hash-keys rv)]
-                           [v (hash-values rv)])
+                (for/list ([k (hash-keys rv)])
+                  (define v (hash-ref rv k))
                   (~a "\"" k "\"" ":" (unreal-js-fragment-content
                                        (->unreal-value v))))
                 ",")}
