@@ -7,7 +7,9 @@
          unreal-is-running?
          subscribe-to-unreal-event
          unsubscribe-from-unreal-event
-         unsubscribe-all-from-unreal-event)
+         unsubscribe-all-from-unreal-event
+         
+         cycle-unreal-tcp-connection)
 
 (define (log str)
   ;(displayln str)
@@ -33,7 +35,7 @@
 
 (define (unsubscribe-from-unreal-event event-type func)
   (when (hash-has-key? subscribed-events event-type)
-        (hash-set! subscribed-events event-type (remove func (hash-ref subscribed-events event-type)))))
+    (hash-set! subscribed-events event-type (remove func (hash-ref subscribed-events event-type)))))
 
 (define (unsubscribe-all-from-unreal-event event-type #:group [group #f])
   
@@ -45,13 +47,13 @@
     (define functions-subscribed-to-event-type-and-not-in-group 
       (filter is-not-in-group?
               functions-subscribed-to-event-type))
-
+    
     (hash-set! subscribed-events event-type functions-subscribed-to-event-type-and-not-in-group)))
 
 (define (wait-until-unreal-is-running)
   (log "Waiting for unreal to start...")            
   (define result (send-to-unreal "(()=>{return 'hi'})()"))
-
+  
   (if (string=? "hi" result)
       #t
       (let ()
@@ -76,36 +78,63 @@
     #:break connection-made?
     (sleep 1)
     (log "Waiting..."))
-
+  
   (tcp-close the-listener)
   (when out-port (close-output-port out-port))
   (when in-port (close-input-port in-port))
-
+  
   (log (if connection-made? "Yes, alive" "Not alive"))
-        
+  
   (kill-thread test-thread)
   
   connection-made?)
+
+(define (cycle-unreal-tcp-connection)
+  #; 
+  (when (and connection-thread 
+             (thread-running? connection-thread))
+    (kill-thread connection-thread))
   
+  (set! connection-thread #f)
+  
+  #;
+  (when (and message-handling-thread 
+             (thread-running? message-handling-thread))
+    (kill-thread message-handling-thread))
+  
+  (set! message-handling-thread #f)
+  
+  (close-output-port unreal-tcp-out)
+  (close-input-port unreal-tcp-in)
+  (tcp-close unreal-tcp-listener)
+  
+  (start-connection-thread)
+  (start-message-handling-thread))
 
 (define (send-to-unreal js-snippet)
-   (log (~a "Sending to Unreal " js-snippet))
+  (log (~a "Sending to Unreal " js-snippet))
   (when (or (not connection-thread) (not (thread-running? connection-thread)))
     (start-connection-thread))
   (when (or (not message-handling-thread) (not (thread-running? message-handling-thread)))
     (start-message-handling-thread))
-
+  
   (let loop ()
     (when (not unreal-tcp-out)
       (sleep 0.1)
       (log "Waiting for Racket's unreal handling threads to start...")
       (loop)))
-
+  
   (define unique-id (random))
   (define message (hash 'eventType unique-id 'jsSnippet js-snippet))
   
-  (displayln (jsexpr->string message) unreal-tcp-out)
-  (flush-output unreal-tcp-out)
+  (with-handlers ([exn:fail? (lambda (e)
+                               (displayln e)
+                               (displayln unreal-tcp-out)
+                               (displayln (thread-running? connection-thread))
+                               (displayln (thread-running? message-handling-thread))
+                               )])
+    (displayln (jsexpr->string message) unreal-tcp-out)
+    (flush-output unreal-tcp-out))
   
   (define wait (make-channel))
   (subscribe-to-unreal-event unique-id(lambda (resp) 
@@ -144,20 +173,20 @@
                   (when (number? event-type)
                         (hash-remove! subscribed-events event-type))
 
-
                   ; Unreal message will look like (hash 'event-type "projectile-hit"
                   ;                                     'event-data (hash 'X 345 'Y 345 'Z 345))
                   ; OR it will look like (hash 'event-type 23
                   ;                            'event-data #t ) 
                   ; The former is for events generated in Unreal
                   ; the latter is for responses to unreal-eval-js; 
-                  ) 
-              )
+                  ))
               (main-loop)
               )))))
 
 (define connection-thread #f)
 (define unreal-tcp-out #f)
+(define unreal-tcp-in #f)
+(define unreal-tcp-listener #f)
 
 (define (start-connection-thread)
   (set! connection-thread
@@ -165,10 +194,12 @@
          (lambda ()
           (let main-loop ()
             (log "Creating listener...")
-            (define the-listener (tcp-listen 8888 5 #t))
+            (define the-listener (tcp-listen 8888 5 #f))
+            (set! unreal-tcp-listener the-listener)
             (log "Accepting connection...")
             (define-values (in out) (tcp-accept the-listener))
             (set! unreal-tcp-out out)
+            (set! unreal-tcp-in in)
             (log "Accepted connection!")
             
             (let loop ()
@@ -177,7 +208,7 @@
                                                                       (log (exn:fail:network:errno-errno e))
                                                                       (log (exn-continuation-marks e))
                                                                       eof)])
-                                                              
+                             (log "About to read-line")                                 
                              (string-trim (read-line in))))
               ; (when (eof-object? raw-message-from-unreal)
               ;   (set! unreal-tcp-out #f)

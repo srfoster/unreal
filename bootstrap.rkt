@@ -44,7 +44,7 @@
   class MyTCP extends Root.ResolveClass('TCP'){
    MessageReceived(racketMessage){
 
-    let messages = racketMessage.split("\n")
+    let messages = racketMessage.split("\n").filter((m)=>m.length > 0)
     messages.map((racketMessage) => {
      console.log(racketMessage)
      racketMessage = JSON.parse(racketMessage)
@@ -64,7 +64,7 @@
      var payload = `{"eventType": ${racketMessage["eventType"]}, "eventData": ${JSON.stringify(simplify(val))}}`
 
      console.log(payload)
-
+     
      this.SendMessage(payload + "\n")
      })
    }
